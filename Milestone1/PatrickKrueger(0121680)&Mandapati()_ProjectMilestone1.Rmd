@@ -1,0 +1,1327 @@
+---
+title: "Project - Milestone 1"
+author: "k Michelle Patrick Krueger & Likhitha Mandapati"
+date: "2023-03-10"
+output: pdf_document
+---
+**Q1** This is a state-wide naturalistic driving study. To show how participants were distributed within the state of Texas, plot a map visualization. The latiitude and longitude for the city of each participant are provided in the file **Affective_Driving_Dataset_Pariticpant_Cities.csv**.
+
+**Q2** Make an exploratory study by creating a data-summarizing visualization. We recommend that you: Create a four-row image to plot. Plot the trip distributions of the behavioral and physiological factors in the first row. Plot the trip distributions of the environmental variables in the second row. Plot the state psychometrics ranges in the third row. Plot the characteristic psychometric distributions in the fourth row. Make a table with these distributions' descriptive data as well. Describe your findings and ideas.
+
+**Q3** The summary visualization gives a mean sense of the data at the trip level. This is an appropriate level to perform statistical analysis. However, it is useful as an analyst to have a sense of the underlying moment by moment data for quality control and other reasons. Accordingly, construct a signal figure for participant P27. The figure should show the participant's signals of heart rate, jam factor, vehicle speed, and weather throughout the day for all seven days of the observational period.
+
+\newpage
+
+```{r setup, include=FALSE, warning=FALSE}
+### define the color palette ----------------
+cols <- c("#F0E442", "#E69F00", "#CC79A7", "#56B4E9", "#009E73", "#D55E00", "#000000", "#0072B2")
+
+## load libraries --------------------------
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(ggrepel)
+library(maps)
+library(mapdata)
+library(stringr)
+library(lubridate)
+library(gridExtra)
+library(scales)
+library(reshape2)
+library(cowplot)
+library(xtable)
+library(knitr)
+library(kableExtra)
+
+### import data -----------------------------
+txCities<-read.csv("/Users/student/Documents/Spring 23/STAT/PatrickKrueger(0121680)&Mandapati()_ProjectMilestone1/Affective_Driving_Dataset_Participant_Cities.csv")
+Dataset <- read.csv("/Users/student/Documents/Spring 23/STAT/PatrickKrueger(0121680)&Mandapati()_ProjectMilestone1/Affective_Driving_Dataset_N21.csv")
+```
+
+# Objective
+
+This driving study's primary goal was to look at the behavioural and physiological trends among drivers over the course of a normal week. Considering the lack of physical activity involved in driving, any cardiovascular activation that is seen during driving is most likely caused by sympathetic arousal or potentially parasympathetic reduction. The research included a variety of trait, state, vehicular, observational, and environmental factors that have previously been associated with sympathetic reactions to account for this. These factors were chosen to account for a sizable portion of the autonomic activation in the drivers, which would account for a sizable portion of the observed cardiovascular activation. In order to account for cardiovascular activation brought on by a decrease in parasympathetic activity, the research also included indicators of circadian rhythms, such as morning and afternoon periods. Through complementary models centered on the participants' non-driving lives, the research also sought to find aspects of sympathetic activation and parasympathetic reduction that are not specific to driving.
+
+
+# Dataset Introduction
+
+The dataset is a compilation of physiological, behavioral, and psychometric data collected over the course of seven days from 21 individuals. The dataset contains statistics on the age, gender, and trait anxiety score of each participant. Using an Apple Watch, physiological information like heart rate is also captured during the participants' everyday commutes. Behavioral data, such as vehicle speed and absolute throttle position, is captured using an OBD2 device, while environmental data, such as traffic conditions and weather, is recorded at each observation instant. The dataset also contains psychometric information, such as the NASA-TLX and State Anxiety scores of the participants, which evaluate perceived workload and anxiety levels at the beginning of each day, respectively. The Big-Five personality characteristics are also noted, which include agreeableness, conscientiousness, extraversion, neuroticism, and openness.
+
+
+\newpage
+# Question-1
+
+
+```{r, include=FALSE, warning=FALSE}
+# Q1 --------------------------------------
+tx_map <- map_data("state", "texas")
+```
+
+```{r echo=FALSE, fig.height=14, fig.width=14, warning=FALSE}
+library(ggrepel)
+
+# create a table of city counts
+city_counts <- table(txCities$city)
+
+# summarize city data to get mean longitude and latitude for each city
+city_summary <- txCities %>%
+  group_by(city) %>%
+  summarize(lon = mean(lon), lat = mean(lat))
+
+# add a column for the city count to the city summary data
+city_summary <- city_summary %>%
+  mutate(city_count = city_counts[city])
+
+# create xmin, ymin, xmax, ymax variables in city summary data
+city_summary <- city_summary %>%
+  mutate(xmin = lon - 0.5,
+         ymin = lat - 0.5,
+         xmax = lon + 0.5,
+         ymax = lat + 0.5)
+
+# plot the map with labels and segments
+ggplot() +
+  geom_polygon(data = tx_map, aes(x = long, y = lat, group = group), fill = "gray80", color = "black") +
+  geom_point(data = txCities, aes(x = lon, y = lat, color = PID), size = 3) +
+ 
+  
+  geom_label_repel(data = city_summary, aes(x = lon, y = lat, label = paste(city, "/", city_count)), 
+                   fontface = "bold", label.size = 0.15,
+                   nudge_x = 0.6, nudge_y = 0.6,
+                   box.padding = unit(0.5, "lines"), box.color = "gray20",
+                   segment.color = "gray20", fill = "white", size = 4,
+                   max.overlaps = Inf,
+                   avoid_overlap = TRUE)+ # apply a repulsive force to the labels
+  coord_sf(xlim = c(-107, -93), ylim = c(25, 37), expand = FALSE, clip = "off") +
+  scale_color_discrete(name = "Participant ID") +
+  labs(title = "Participant Locations in Texas") +
+  theme(plot.title = element_text(hjust = 0.5,size=20),
+        legend.title = element_text(hjust = 0.5),
+        axis.title = element_text(size = 20))+
+  guides(color = guide_legend(nrow = 7, byrow = TRUE, ncol = 3),override.aes = list(size = 3, shape = NA))
+
+```
+
+
+## Observations
+
+TThe map visualization displays the distribution of the 21 participants in a Texas research on statewide naturalistic driving. A number of the participant towns are shown on the map, and the size of the label next to each city's name indicates how many participants are from that city. With 4 and 2 participants each, Bryan and College Station are home to the bulk of the participants. San Antonio, Houston, Aransas Pass, Corpus Christi, and Brownsville each have two participants, while Sherman, Greenville, Plano, Dallas, Mesquite, Grandview, Big Spring, and Jarrell each have one member.
+
+The geographical distribution of the individuals across Texas is also shown on the map. There are no participants in the state's western or northern areas; instead, they are all concentrated in the state's eastern, central, and southern regions. Each participant's city's longitude and latitude are taken into account, and the map is scaled to display the complete state of Texas.
+
+
+\newpage
+
+
+# Question-2
+
+
+```{r expAnalysis, echo=FALSE, warning=FALSE}
+id.list <- unique(Dataset$P_ID)  # get the list of all the participant identifications.
+
+
+### AG 1 ----------------------------------
+data.1 <- Dataset %>% group_by(P_ID,Trip.,Day.,Trip_Period) %>% summarise(
+  HR_Raw.mean = round(mean(HR_Raw, na.rm = T),3),
+  HR_Raw.sd = round(sd(HR_Raw, na.rm =T),3),
+  HR_Raw.med = round(median(HR_Raw, na.rm=T),3), 
+  
+  Speed.mean = round(mean(Speed, na.rm = T),3),
+  Speed.sd = round(sd(Speed, na.rm =T),3),
+  Speed.med = median(Speed, na.rm=T), 
+  
+  ATP.mean = round(mean(ATP, na.rm = T),3),
+  ATP.sd = round(sd(ATP, na.rm =T),3),
+  ATP.med = median(ATP, na.rm=T), 
+  
+  Accel_Energy.mean = round(mean(Accel_Energy, na.rm = T),3),
+  Accel_Energy.sd = round(sd(Accel_Energy, na.rm =T),3),
+  Accel_Energy.med = median(Accel_Energy, na.rm=T), 
+  
+  Rot_Energy.mean = round(mean(Rot_Energy, na.rm = T),3),
+  Rot_Energy.sd = round(sd(Rot_Energy, na.rm =T),3),
+  Rot_Energy.med = median(Rot_Energy, na.rm=T), 
+  
+  .groups = "drop")
+
+data.1mx <- melt(subset(data.1, select = c(P_ID,Accel_Energy.mean,Rot_Energy.mean)),id="P_ID")
+
+### AG 2 ----------------------------------
+data.2 <- Dataset %>% group_by(P_ID,Trip.,Day.,Trip_Period) %>% summarise(
+  JF.mean = round(mean(JF, na.rm = T),3),
+  JF.sd = round(sd(JF, na.rm =T),3),
+  JF.med = round(median(JF, na.rm=T),3), 
+  
+  Weather.mean = round(mean(Weather, na.rm = T),3),
+  Weather.sd = round(sd(Weather, na.rm =T),3),
+  Weather.med = round(median(Weather, na.rm=T),3), 
+  
+  .groups = "drop")
+
+### AG 3 ----------------------------------
+data.3 <- Dataset %>% group_by(P_ID,Trip.,Day.,Trip_Period) %>% summarise(
+  State_Anxiety.mean = round(mean(State_Anxiety, na.rm = T),3),
+  State_Anxiety.sd = round(sd(State_Anxiety, na.rm =T),3),
+  State_Anxiety.med = round(median(State_Anxiety, na.rm=T),3), 
+  
+  MD.mean = round(mean(MD, na.rm = T),3),
+  MD.sd = round(sd(MD, na.rm =T),3),
+  MD.med = median(MD, na.rm=T), 
+  
+  PD.mean = round(mean(PD, na.rm = T),3),
+  PD.sd = round(sd(PD, na.rm =T),3),
+  PD.med = median(PD, na.rm=T), 
+  
+  TD.mean = round(mean(TD, na.rm = T),3),
+  TD.sd = round(sd(TD, na.rm =T),3),
+  TD.med = median(TD, na.rm=T), 
+  
+  P.mean = round(mean(P, na.rm = T),3),
+  P.sd = round(sd(P, na.rm =T),3),
+  P.med = median(P, na.rm=T), 
+  
+  E.mean = round(mean(E, na.rm = T),3),
+  E.sd = round(sd(E, na.rm =T),3),
+  E.med = median(E, na.rm=T), 
+  
+  F.mean = round(mean(F, na.rm = T),3),
+  F.sd = round(sd(F, na.rm =T),3),
+  F.med = median(F, na.rm=T), 
+  
+  .groups = "drop")
+
+### AG 4 ----------------------------------
+data.4 <- Dataset %>% group_by(P_ID,Trip.,Day.,Trip_Period) %>% summarise(
+  Trait_Anxiety.mean = round(mean(Trait_Anxiety, na.rm = T),3),
+  Trait_Anxiety.sd = round(sd(Trait_Anxiety, na.rm =T),3),
+  Trait_Anxiety.med = round(median(Trait_Anxiety, na.rm=T),3), 
+  
+  B5A.mean = round(mean(B5A, na.rm = T),3),
+  B5A.sd = round(sd(B5A, na.rm =T),3),
+  B5A.med = median(B5A, na.rm=T), 
+  
+  B5C.mean = round(mean(B5C, na.rm = T),3),
+  B5C.sd = round(sd(B5C, na.rm =T),3),
+  B5C.med = median(B5C, na.rm=T), 
+  
+  B5E.mean = round(mean(B5E, na.rm = T),3),
+  B5E.sd = round(sd(B5E, na.rm =T),3),
+  B5E.med = median(B5E, na.rm=T), 
+  
+  B5N.mean = round(mean(B5N, na.rm = T),3),
+  B5N.sd = round(sd(B5N, na.rm =T),3),
+  B5N.med = median(B5N, na.rm=T), 
+  
+  B5O.mean = round(mean(B5O, na.rm = T),3),
+  B5O.sd = round(sd(B5O, na.rm =T),3),
+  B5O.med = median(B5O, na.rm=T), 
+  
+  .groups = "drop")
+
+
+## --------------- ------------------------
+### AG 1 ----------------------------------
+# Box plots of the mean values from AG 1
+bp.HR <- ggplot(data.1, aes(y=HR_Raw.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("Driving HR")) +
+  theme_bw() +
+  ylab(expression("[BPM]")) +
+  xlab("") +
+  ylim(60, 120) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=115, label= "n = 21")
+
+bp.Speed <- ggplot(data.1, aes(y=Speed.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("Speed")) +
+  theme_bw() +
+  ylab(expression("[MPH]")) +
+  xlab("") +
+  ylim(0,60) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=55, label= "n = 21")
+
+bp.ATP <- ggplot(data.1, aes(y=ATP.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("Throttle")) +
+  theme_bw() +
+  ylab(expression("[°]")) +
+  xlab("") +
+  ylim(0,80) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=75, label= "n = 21")
+
+bp.Energy <- ggplot(data.1mx, aes(x=variable,y=value)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("Energy")) +
+  theme_bw() +
+#  scale_x_discrete(c("Ea mean","Er mean")) +
+  ylim(0,1.75) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+#    axis.text.x = element_blank(),
+#    axis.ticks.x = element_blank()
+  ) +
+  scale_x_discrete(labels=c(expression(paste(bar(E[a] * ""))),expression(paste(bar(E[r] * ""))))) +  
+  annotate("text", x=c(1,2), y=1.7, label= "n = 21")
+
+### AG 2 ----------------------------------
+bp.JF <- ggplot(data.2, aes(y=JF.mean)) + 
+  ggtitle(bquote("Jam Factor")) +
+  geom_boxplot(fill="grey") +
+  theme_bw() +
+  ylab(expression(paste(bar(JF * "")))) +
+  xlab("") +
+  ylim(0.5,1.6 ) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=1.5, label= "n = 21")
+
+bp.Weather <- ggplot(Dataset, aes(x=Weather)) + 
+  geom_bar(aes(y=(..count..)/sum(..count..) )) +
+  scale_y_continuous(labels=percent) +
+  ylab("[%]") +
+  ggtitle(bquote("Weather")) +
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank()
+#    axis.text.x = element_blank(),
+#    axis.ticks.x = element_blank()
+  ) +
+  scale_x_continuous(breaks=1:4,labels=c("Clear","Clouds","Rain","OT") ) 
+
+### AG 3 ----------------------------------
+bp.State_Anxiety <- ggplot(data.3, aes(y=State_Anxiety.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("State Anxiety")) +
+  theme_bw() +
+  ylab(expression(paste(bar(StateAnxiety * ""))))+
+  xlab("") +
+  ylim(20, 43) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=39, label= "n = 21")
+
+bp.MD <- ggplot(data.3, aes(y=MD.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("MD")) +
+  theme_bw() +
+  ylab(expression(paste(bar(MD * "")))) +
+  xlab("") +
+  ylim(.9,7) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=6.5, label= "n = 21")
+
+
+bp.PD <- ggplot(data.3, aes(y=PD.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("PD")) +
+  theme_bw() +
+  ylab(expression(paste(bar(PD * "")))) +
+  xlab("") +
+  ylim(0.9,7) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=6.5, label= "n = 21")
+
+bp.TD <- ggplot(data.3, aes(y=TD.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("TD")) +
+  theme_bw() +
+  ylab(expression(paste(bar(TD * "")))) +
+  xlab("") +
+  ylim(.9,7) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=6.5, label= "n = 21")
+
+bp.P <- ggplot(data.3, aes(y=P.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("P")) +
+  theme_bw() +
+  ylab(expression(paste(bar(P * "")))) +
+  xlab("") +
+  ylim(.9,7) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=6.5, label= "n = 21")
+
+bp.E <- ggplot(data.3, aes(y=E.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("E")) +
+  theme_bw() +
+  ylab(expression(paste(bar(E * "")))) +
+  xlab("") +
+  ylim(.9,7) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=6.5, label= "n = 21")
+
+bp.F <- ggplot(data.3, aes(y=F.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("F")) +
+  theme_bw() +
+  ylab(expression(paste(bar(F * "")))) +
+  xlab("") +
+  ylim(.9,7) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=6.5, label= "n = 21")
+
+
+### AG 4 ----------------------------------
+bp.Trait_Anxiety <- ggplot(data.4, aes(y=Trait_Anxiety.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("Trait Anxiety")) +
+  theme_bw() +
+  ylab(expression(paste(bar(TraitAnxiety * ""))))+
+  xlab("") +
+  ylim(20, 56) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=50, label= "n = 21")
+
+bp.B5A <- ggplot(data.4, aes(y=B5A.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("B5.A")) +
+  theme_bw() +
+  ylab(expression(paste(bar(B5A * "")))) +
+  xlab("") +
+  ylim(2,10) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=9.5, label= "n = 21")
+
+bp.B5C <- ggplot(data.4, aes(y=B5C.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("B5.C")) +
+  theme_bw() +
+  ylab(expression(paste(bar(B5C * "")))) +
+  xlab("") +
+  ylim(2,10) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=9.5, label= "n = 21")
+
+bp.B5E <- ggplot(data.4, aes(y=B5E.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("B5.E")) +
+  theme_bw() +
+  ylab(expression(paste(bar(B5E * "")))) +
+  xlab("") +
+  ylim(2,10) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=9.5, label= "n = 21")
+
+bp.B5N <- ggplot(data.4, aes(y=B5N.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("B5.N")) +
+  theme_bw() +
+  ylab(expression(paste(bar(B5N * "")))) +
+  xlab("") +
+  ylim(2,10) + 
+  theme(
+    plot.title = element_text(hjust = 0.5), # center the plot title
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=9.5, label= "n = 21")
+
+bp.B5O <- ggplot(data.4, aes(y=B5O.mean)) + 
+  geom_boxplot(fill="grey") +
+  ggtitle(bquote("B5.O")) +
+  theme_bw() +
+  ylab(expression(paste(bar(B5O * "")))) +
+  xlab("") +
+  ylim(2,10) + 
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +  
+  annotate("text", x=0, y=9.5, label= "n = 21")
+
+panel.1 <- ggarrange(bp.HR, bp.Speed, bp.ATP, bp.Energy, nrow=1)
+panel.2 <- ggarrange(bp.JF, bp.Weather, nrow=1, widths=c(1,3))
+panel.3 <- ggarrange(bp.State_Anxiety,bp.MD,bp.PD,bp.TD,bp.P,bp.E,bp.F,nrow=1)
+panel.4 <- ggarrange(bp.Trait_Anxiety,bp.B5A,bp.B5C,bp.B5E,bp.B5N,bp.B5O,nrow=1)
+```
+
+* Plot of all the physiological, behavioral, enviornmental, and psychometric variables.
+
+```{r  echo=FALSE, fig.height=14, fig.width=12}
+grid.arrange(panel.1, panel.2,panel.3,panel.4,nrow=4)
+
+```
+
+\newpage
+
+## trip distributions of physiological and behavior variables
+
+
+```{r echo = FALSE, warning = FALSE}
+result_1 <- Dataset %>%
+  group_by(Trip.) %>%
+  summarise( 
+             
+    HR_Raw.mean = round(mean(HR_Raw, na.rm = T),3),
+    HR_Raw.sd = round(sd(HR_Raw, na.rm =T),3),
+    HR_Raw.med = round(median(HR_Raw, na.rm=T),3),
+    
+    Speed.mean = round(mean(Speed, na.rm = T),3),
+    Speed.sd = round(sd(Speed, na.rm =T),3),
+    Speed.med = round(median(Speed, na.rm=T),3),
+    
+    ATP.mean = round(mean(ATP, na.rm = T),3),
+    ATP.sd = round(sd(ATP, na.rm =T),3),
+    ATP.med = round(median(ATP, na.rm=T),3),
+    
+    Accel.mean = round(mean(Accel_Energy, na.rm = T),3),
+    Accel.sd = round(sd(Accel_Energy, na.rm =T),3),
+    Accel.med = round(median(Accel_Energy, na.rm=T),3),
+    
+    Rot.mean = round(mean(Rot_Energy, na.rm = T),3),
+    Rot.sd = round(sd(Rot_Energy, na.rm =T),3),
+    Rot.med = round(median(Rot_Energy, na.rm=T),3),
+    .groups = "drop")
+
+table_1<-xtable(result_1, digits = 5)
+df_transposed <- t(result_1)
+x<-as.data.frame(df_transposed)
+
+colnames(x)<-x[1,]
+x<-x[-1,]
+
+colnames(x) = c("Trip1", "Trip2","Trip3","Trip4","Trip5","Trip6","Trip7" )
+x[c("Trip1", "Trip2","Trip3","Trip4","Trip5","Trip6","Trip7")] %>%
+ kable(align = 'l',booktabs = TRUE,format = "latex") %>%
+  row_spec(0, angle = 45, bold =T) %>%
+ kable_styling(full_width = T,
+ fixed_thead = T,
+ latex_options = "striped",
+ #,latex_options = "scale_down",
+ font_size = 8
+ )
+```
+
+## Observations
+
+**Heart Rate (HR):**
+
+Trip1's mean heart rate is the lowest (84.76 bpm), and Trip3's mean heart rate is the greatest (91.00 bpm). The HR's standard deviation (SD), which ranges from 11.40 to 11.55 bpm, is reasonably constant between trips. The median heart rate, which ranges from 82 to 89 bpm, is also constant between journeys. Conclusion: There are only slight variations in the heart rates of the participants during the various trips.
+**Speed:**
+
+The mean speed of rip1 is the fastest (34.65 mph), and the mean speed of trip7 is the slowest (16.19 mph). Each trip's SD for speed is different, with Trip1's SD (26.26 mph) being the greatest and Trip6's SD being the lowest (11.43 mph). With a range of 15 to 34 mph, the median speed is comparatively constant across trips. Conclusion: The speed of the participants changes considerably between the trips, with some trips involving fast driving and others featuring slow driving.
+**ATP (Absolute Throttle Position):**
+
+The mean ATP of Trip1 is the greatest (21.98%), while the mean ATP of Trip4 is the lowest (16.31%). Trip1 had the highest SD (15.48%) and Trip4 had the lowest SD (6.97%) for ATP, which fluctuates between trips. The median ATP, which ranges from 12.50% to 18.40%, is fairly constant between visits. Conclusion: The use of the accelerator pedal by the participants differs considerably across trips, with some trips having more frequent and intense acceleration than others.
+
+**Acceleration:**
+
+The mean acceleration for Trip1 is the greatest (1.23 m/s2), while the mean acceleration for Trip4 is the lowest (1.13 m/s2). Trip1 had the highest SD (0.47 m/s2) and Trip5 had the lowest SD (0.13 m/s2). The SD of acceleration changes between trips. The median acceleration, which ranges from 1.30 to 1.43 m/s2, is fairly constant between journeys. Inference: The measured acceleration, which varies slightly between trips, and the participants' use of the accelerator pedal are consistent.
+
+**Rotation:**
+
+The mean rotation for Trip6 is the greatest (0.82 deg/s), while the mean rotation for Trip7 is the lowest (0.43 deg/s). Trip1 had the highest SD (1.14 deg/s), while Trip7 had the lowest SD (0.80 deg/s). The SD of rotation changes between trips. The median rotation, which ranges from 0.22 deg/s to 0.35 deg/s, is fairly constant across journeys. Conclusion: The participants' rotational use of the steering wheel changes slightly between trips.
+
+\newpage
+
+
+## trip distributions of environmental variables
+
+
+```{r echo = FALSE, warning = FALSE}
+result_2 <- Dataset %>%
+  group_by(Trip.) %>%
+  summarise( 
+             
+    JF.mean = round(mean(JF, na.rm = T),3),
+    JF.sd = round(sd(JF, na.rm =T),3),
+    JF.med = round(median(JF, na.rm=T),3),
+    
+    weather.mean = round(mean(Weather, na.rm = T),3),
+    weather.sd = round(sd(Weather, na.rm = T),3),
+    weather.med = round(median(Weather, na.rm = T),3)
+  )
+
+table_2<-xtable(result_2, digits = 5)
+df_transposed <- t(result_2)
+x<-as.data.frame(df_transposed)
+
+colnames(x)<-x[1,]
+x<-x[-1,]
+
+colnames(x) = c("Trip1", "Trip2","Trip3","Trip4","Trip5","Trip6","Trip7" )
+x[c("Trip1", "Trip2","Trip3","Trip4","Trip5","Trip6","Trip7")] %>%
+ kable(align = 'l',booktabs = TRUE,format = "latex") %>%
+  row_spec(0, angle = 45, bold =T) %>%
+ kable_styling(full_width = T,
+ fixed_thead = T,
+ latex_options = "striped",
+ font_size = 8
+ )
+```
+
+## Observations
+
+**Jam Factor**
+
+The average JF values for each trip range from 1.134 to 1.872, which is a low figure. Each trip's JF standard deviation is fairly constant, with values varying from 1.349 to 1.495. The median JF values for each journey, which range from 0.717 to 1.686, are also quite low. Conclusion: Participants usually drove steadily and avoided making sudden, erratic movements while driving, according to the low values of JF. According to the consistent standard deviation of JF across journeys, participants' driving behavior was largely consistent under various driving circumstances. The low median values of JF imply that participants' driving behavior rarely changed dramatically or abruptly during each journey.
+**Weather**
+
+Each journey's weather has a mean value between 1.000 and 2.000, with trip 4 having the highest mean value. 
+
+In terms of consistency across journeys, the weather standard deviation ranges from 0.426 to 0.660. 
+
+For the first five trips, the weather's median number is consistently 2.000; however, for trips six and seven, it falls to 0.000.
+
+Conclusion: The participants may have faced more difficult driving circumstances during trip 4 due to the high mean value of the weather, such as heavy rain or strong winds. The constant standard deviation of the weather indicates that the driving circumstances were generally constant throughout various journeys. While the median value of 2.000 for the first five trips indicates that participants encountered some degree of unfavorable weather conditions during these trips, the drop in the median value of weather to 0.000 for trips 6 and 7 suggests that participants encountered clear weather conditions during these trips.
+
+\newpage
+
+
+## trip distributions of state psychometrics 
+
+
+```{r echo = FALSE, warning = FALSE}
+result_3 <- Dataset %>%
+  group_by(Trip.) %>%
+  summarise(  
+    SA.mean = round(mean(State_Anxiety, na.rm = T),3),
+    SA.sd = round(sd(State_Anxiety, na.rm =T),3),
+    SA.med = round(median(State_Anxiety, na.rm=T),3),
+    
+    MD.mean = round(mean(MD, na.rm = T),3),
+    MD.sd = round(sd(MD, na.rm =T),3),
+    MD.med = round(median(MD, na.rm=T),3),
+    
+    PD.mean = round(mean(PD, na.rm = T),3),
+    PD.sd = round(sd(PD, na.rm =T),3),
+    PD.med = round(median(PD, na.rm=T),3),
+    
+    TD.mean = round(mean(TD, na.rm = T),3),
+    TD.sd = round(sd(TD, na.rm =T),3),
+    TD.med = round(median(TD, na.rm=T),3),
+    
+    P.mean = round(mean(P, na.rm = T),3),
+    P.sd = round(sd(P, na.rm =T),3),
+    P.med = round(median(P, na.rm=T),3),
+    
+    E.mean = round(mean(E, na.rm = T),3),
+    E.sd = round(sd(E, na.rm =T),3),
+    E.med = round(median(E, na.rm=T),3),
+    
+    F.mean = round(mean(F, na.rm = T),3),
+    F.sd = round(sd(F, na.rm =T),3),
+    F.med = round(median(F, na.rm=T),3),
+  
+    .groups = "drop")
+
+table_3<-xtable(result_3, digits = 5)
+  #print(include.rownames=FALSE)
+df_transposed <- t(result_3)
+x<-as.data.frame(df_transposed)
+
+colnames(x)<-x[1,]
+x<-x[-1,]
+
+colnames(x) = c("Trip1", "Trip2","Trip3","Trip4","Trip5","Trip6","Trip7" )
+x[c("Trip1", "Trip2","Trip3","Trip4","Trip5","Trip6","Trip7")] %>%
+ kable(align = 'l',booktabs = TRUE,format = "latex") %>%
+  row_spec(0, angle = 45, bold =T) %>%
+ kable_styling(full_width = T,
+ fixed_thead = T,
+ latex_options = "striped",
+ font_size = 8
+ )
+```
+
+## Observations
+
+**State Anxiety**
+
+Trips 3 and 4 have the greatest SA mean values (32.588 and 33.806, respectively), while Trips 6 and 7 have the lowest values (24.000 for both). 
+
+Trip5 has the greatest SA standard deviation values (12.742), followed by Trip4 (11.054), and Trip6 and Trip7 have the lowest values (0.000 for both). 
+
+Situational awareness (SA) mean values for trips 3 and 4 are greater than those for the other trips, suggesting that the participants were more conscious of their surroundings and the road conditions during these trips. The participants may have been less involved or attentive during trips 6 and 7, which have the lowest SA mean values. There may have been more variation in the participants' situational awareness levels on Trip 5, as evidenced by the trip with the greatest SA standard deviation.
+
+**MD(Mental Demand)**
+
+Trip4 has the greatest MD mean value (2.273), while Trip6 and Trip7 have the lowest values (1.000 for both). 
+
+Trip1 has the highest MD standard deviation number (1.215), while Trip6 and Trip7 have the lowest values (0.000 for both). 
+
+Conclusion: Trip 4 has the highest mean mental demand (MD) value, indicating that participants may have felt more mental stress and cognitive load during this journey. The participants may have encountered lower amounts of mental demand on trips 6 and 7, as those trips have the lowest MD mean values.
+
+**PD(Physical Demand)**
+
+Trip1 has the greatest PD mean value (1.923), and Trip6 and Trip7 have the lowest values (1.000 for both). Trip1 has the greatest PD standard deviation (1.153), and Trip6 and Trip7 have the lowest values (0.000 for both). Conclusion: Trip 1 has the highest mean physical demand (PD) value, indicating that the participants may have performed more strenuous driving activities on this journey. The participants may have performed less physically demanding driving duties on trips 6 and 7, as these have the lowest PD mean values.
+
+**TD(Temporal Demand)**
+
+The fact that Trip4's TD mean is higher than those of the other trips suggests that drivers were under more time constraint on this trip. Additionally, Trip3's TD mean is comparatively greater. The fact that Trip1's TD standard deviation is higher suggests that participants' levels of temporal demand varied more on this journey. Conclusion: Trips 3 and 4 have greater temporal demand (TD) mean values than the other trips, which may indicate that the participants were under more time pressure and were required to meet higher temporal demands. The participants may have encountered less temporal pressure on trips 6 and 7, which have the lowest TD mean values.
+
+**P(Performance)**
+
+The fact that Trip1 and Trip5 have higher P means that the drivers performed better on these journeys. P standard deviation is higher for Trips 2 and 3, which suggests that participant performance varied more on these excursions. Conclusion: Trip 5 has the highest performance (P) mean value, indicating that participants may have driven more skillfully on this journey than on the others. The participants may have displayed lower levels of driving ability on trips 6 and 7, which have the lowest P mean values.
+
+**E(Effort)**
+
+Trips 2 and 4 have higher E means, suggesting that the drivers worked harder on these trips. For Trips 1, 2, and 3, the E standard deviation is comparatively higher, suggesting that participant effort varied more on these trips. Conclusion: The physical demand (E) dimension has the greatest mean values for Trips 2 and 4, suggesting that the participants may have performed more physically taxing driving duties on these trips. The E mean values for trips 5 and 6 are the lowest, indicating that the participants may have performed less physically demanding driving duties on these trips.
+
+**F(Frustration)**
+
+Trips 3 and 4 have higher F means than the other trips, which suggests that the drivers were more irritated on these travels. Additionally, F mean for Trips 6 and 7 is significantly lower, suggesting that the drivers experienced less annoyance on these trips. For Trips 3 and 4, the F standard deviation is comparatively higher, suggesting that participant frustration varied more on these trips. Conclusion: The functional task (F) dimension has the greatest mean values for Trips 3 and 4, suggesting that the participants may have engaged in more difficult and complex driving tasks during these trips. The participants may have engaged in simpler driving activities on Trip 1 based on the trip's lowest F mean value.
+
+\newpage
+
+
+## trip distributions of trait psychometrics 
+
+
+```{r echo = FALSE, warning = FALSE}
+result_4 <- Dataset %>%
+  group_by(Trip.) %>%
+  summarise( 
+             
+    B5A.mean = round(mean(B5A, na.rm = T),3),
+    B5A.sd = round(sd(B5A, na.rm =T),3),
+    B5A.med = round(median(B5A, na.rm=T),3),
+  
+    B5C.mean = round(mean(B5C, na.rm = T),3),
+    B5C.sd = round(sd(B5C, na.rm =T),3),
+    B5C.med = round(median(B5C, na.rm=T),3),
+    
+    B5E.mean = round(mean(B5E, na.rm = T),3),
+    B5E.sd = round(sd(B5E, na.rm =T),3),
+    B5E.med = round(median(B5E, na.rm=T),3),
+    
+    B5N.mean = round(mean(B5N, na.rm = T),3),
+    B5N.sd = round(sd(B5N, na.rm =T),3),
+    B5N.med = round(median(B5N, na.rm=T),3),
+    
+    B5O.mean = round(mean(B5O, na.rm = T),3),
+    B5O.sd = round(sd(B5O, na.rm =T),3),
+    B5O.med = round(median(B5O, na.rm=T),3),)
+
+table_4<-xtable(result_4, digits = 5)
+  
+df_transposed <- t(result_4)
+x<-as.data.frame(df_transposed)
+
+colnames(x)<-x[1,]
+x<-x[-1,]
+
+colnames(x) = c("Trip1", "Trip2","Trip3","Trip4","Trip5","Trip6","Trip7" )
+x[c("Trip1", "Trip2","Trip3","Trip4","Trip5","Trip6","Trip7")] %>%
+ kable(align = 'l',booktabs = TRUE,format = "latex") %>%
+  row_spec(0, angle = 45, bold =T) %>%
+ kable_styling(full_width = T,
+ fixed_thead = T,
+ latex_options = "striped",
+ font_size = 8
+ )
+
+```
+
+## Observations
+
+**B5A**
+
+For performance metric B5A, which gauges the driver's control over speed, trips 4 and 5 have the lowest and greatest mean values, respectively. This implies that the participants may have driven more carefully and slowly during Trip 4 and more quickly during Trip 5. For performance metric B5A, Trips 5 and 6 have the greatest and lowest standard deviation values, respectively, suggesting that the driver's speed control may have been more variable on Trip 5 than on Trip 6.
+
+**B5C**
+
+The mean values for performance metric B5C, which gauges the driver's lateral position control, are lowest and greatest for trips 4 and 5, respectively. This indicates that the participants' lateral positions may have been more consistent during Trip4 and more variable during Trip5. For performance measure B5C, Trips 5 and 6 have the greatest and lowest standard deviation values, respectively, suggesting that the driver's lateral position control may have been more variable during Trip 5 than it was during Trip 6.
+
+**B5E**
+
+Trips 1, 2, and 3 have greater mean values than the other trips for the performance metric B5E, which gauges the driver's ability to control longitudinal acceleration. This implies that the participants may have been accelerating and decelerating more forcefully during these journeys. The performance metric B5E for Trip 5 has the highest standard deviation value, suggesting that the driver's control of longitudinal acceleration may have been less consistent during this journey.
+
+**B5N**
+
+Trips 4 and 5 have the lowest and highest mean values for performance metric B5N, which gauges how frequently the driver interacts with the secondary controls of the car, respectively (e.g., radio, HVAC, etc.). This indicates that compared to Trip4, the participants on Trip5 might have been more easily sidetracked.
+
+**B5O**
+
+Trips 1, 2, 3, and 7 have greater mean values than the other trips for the performance metric B5O, which gauges the driver's steering wheel reversals. This indicates that the participants may have reversed the steering wheel more frequently during these journeys, possibly as a result of navigating intersections with more turns or driving on curvier roads.
+
+\newpage
+
+
+# Question-3
+
+
+```{r echo=FALSE}
+drivingData <- read.csv("/Users/student/Documents/Spring 23/STAT/PatrickKrueger(0121680)&Mandapati()_ProjectMilestone1/Affective_Driving_Dataset_N21.csv")
+p27<- subset(drivingData,P_ID=='P27'& !is.na(HR_Raw))
+```
+
+```{r echo=FALSE}
+p27$Time <- strptime(p27$Time, format = "%m/%d/%y %H:%M")
+```
+
+```{r echo=FALSE, include=FALSE}
+library(lubridate)
+table(hour(p27$Time))
+```
+
+```{r echo=FALSE}
+#p27 <- p27[!(p27$Day. %in% c("Day6", "Day7")), ]
+```
+
+
+
+```{r echo=FALSE}
+# filter rows that have a time value between 6:00:00 and 7:00:00
+library(dplyr)
+library(lubridate)
+
+p2767<-p27 %>%
+  mutate(Time = as.POSIXct(Time, format = "%m/%d/%y %H:%M")) %>% 
+  filter(hour(Time) >= 6 & hour(Time) < 8) 
+
+
+p271112<-p27 %>%
+  mutate(Time = as.POSIXct(Time, format = "%m/%d/%y %H:%M")) %>% 
+  filter(hour(Time) >= 11 & hour(Time) < 14) 
+
+p271617<-p27 %>%
+     mutate(Time = as.POSIXct(Time, format = "%m/%d/%y %H:%M")) %>% 
+  filter(hour(Time) >= 15 & hour(Time) < 17) 
+p271819<-p27 %>%
+    mutate(Time = as.POSIXct(Time, format = "%m/%d/%y %H:%M")) %>% 
+  filter(hour(Time) >= 18 & hour(Time) < 20) 
+
+p272021<-p27 %>%
+  mutate(Time = as.POSIXct(Time, format = "%m/%d/%y %H:%M")) %>% 
+  filter(hour(Time) >= 20 & hour(Time) < 21) 
+```
+
+```{r echo=FALSE}
+time_seq6 <- seq(as.POSIXct("6:00:00", format = "%H:%M:%S"), 
+                  as.POSIXct("7:03:00", format = "%H:%M:%S"), 
+                  by = "min")
+
+time_seq11 <- seq(as.POSIXct("11:00:00", format = "%H:%M:%S"), 
+                as.POSIXct("12:30:00", format = "%H:%M:%S"), 
+                by = "min")
+
+time_seq16 <- seq(as.POSIXct("15:30:00", format = "%H:%M:%S"), 
+                as.POSIXct("17:00:00", format = "%H:%M:%S"), 
+                by = "min")
+
+time_seq18 <- seq(as.POSIXct("18:00:00", format = "%H:%M:%S"), 
+                as.POSIXct("19:30:00", format = "%H:%M:%S"), 
+                by = "min")
+
+time_seq20 <- seq(as.POSIXct("20:00:00", format = "%H:%M:%S"), 
+                as.POSIXct("21:00:00", format = "%H:%M:%S"), 
+                by = "min")
+```
+
+
+
+```{r warning=FALSE,include=FALSE}
+
+library(ggplot2)
+library(grid)
+library(gridExtra)
+day_colors <- c("Day1" = "blue",
+                "Day2" = "red",
+                "Day3" = "green",
+                "Day4" = "yellow",
+                "Day5" = "purple",
+                "Day6"="pink",
+                "Day7"="steelblue")
+
+label_names <- c("clear", "cloud", "rain")
+label_vector <- setNames(c(label_names, "Other"), 1:4)
+par(mfrow = c(1, 3))
+g1<-ggplot(p2767, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = Weather, color = Day.)) +
+  geom_point() +
+  labs(x = "", y = "Weather") +
+  theme_classic() +
+  theme(axis.text.x = element_text()) +
+# xlim(range(time_seq6))+
+  scale_color_manual(values = day_colors) +
+  guides(color = FALSE) +
+  scale_y_continuous(breaks = 1:4, labels = label_vector) +
+    scale_x_continuous(limits = range(time_seq6), breaks = time_seq6[c(1, 61)], labels = c("6:00", "7:00"))
+
+g2<-ggplot(p271112, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = Weather,color=Day.)) +
+  geom_point() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+       # axis.ticks.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+ # xlim(range(time_seq11))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+scale_x_continuous(limits = range(time_seq11), breaks = time_seq11[c(1, 61)], labels = c("11:00", "12:00"))
+
+g3<-ggplot(p271617, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = Weather,color=Day.)) +
+  geom_point() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+       # axis.ticks.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  #xlim(range(time_seq16))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+ scale_x_continuous(limits = range(time_seq16), breaks = time_seq16[c(1, 61)], labels = c("16:00", "17:00"))
+
+g4<-ggplot(p271819, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S")
+, y = Weather,color=Day.)) +
+  geom_point() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+        #axis.ticks.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  #xlim(range(time_seq18))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+  scale_x_datetime(breaks = time_seq18[c(1,61)], 
+                   date_labels = c("%H:%M", "%H:%M"))
+
+g5<-ggplot(p272021, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S")
+, y = Weather,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+        #axis.ticks.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+ # xlim(range(time_seq20))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+ 
+  scale_x_continuous(limits = range(time_seq20), breaks = time_seq20[c(1, 61)], labels = c("20:00", "21:00"))
+
+weather<- grid.arrange(grobs=list(g1,g2,g3,g4,g5),nrow=1,ncol=5)
+
+```
+
+
+
+
+```{r warning=FALSE,include=FALSE}
+
+
+day_colors <- c("Day1" = "blue",
+                "Day2" = "red",
+                "Day3" = "green",
+                "Day4" = "yellow",
+                "Day5" = "purple",
+                "Day6"="pink",
+                "Day7"="steelblue")
+
+par(mfrow = c(1, 3))
+g1<-ggplot(p2767, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = HR_Raw,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "HR.Raw") +
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+          # axis.line.x = element_blank(),
+           )+
+ # xlim(range(time_seq6),position = "top")+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+  scale_x_continuous(limits = range(time_seq6), breaks = time_seq6[c(1, 61)], labels = c("6:00", "7:00"), position = "top")+
+    scale_y_continuous(limits = c(70, 120))
+
+g2<-ggplot(p271112, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = HR_Raw,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+        #axis.ticks.x = element_blank(),
+        # axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+ # xlim(range(time_seq11))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+  scale_x_continuous(limits = range(time_seq11), breaks = time_seq11[c(1, 61)], labels = c("11:00", "12:00"), position = "top")+
+    scale_y_continuous(limits = c(70, 120))
+
+g3<-ggplot(p271617, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = HR_Raw,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+      #  axis.ticks.x = element_blank(),
+       #  axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  #xlim(range(time_seq16))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+  scale_x_continuous(limits = range(time_seq16), breaks = time_seq16[c(1, 61)], labels = c("16:00",  "17:00"), position = "top")+
+    scale_y_continuous(limits = c(70, 120))
+
+g4<-ggplot(p271819, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = HR_Raw,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") + #18-19
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+       # axis.ticks.x = element_blank(),
+       # axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+ # xlim(range(time_seq18))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+  scale_x_continuous(limits = range(time_seq18), breaks = time_seq18[c(1, 61)], labels = c("18:00", "19:00"), position = "top")+
+    scale_y_continuous(limits = c(70, 120))
+
+
+g5<-ggplot(p272021, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = HR_Raw,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") + #18-19
+  theme_classic()+
+    theme(axis.text.x = element_text(),
+      #  axis.ticks.x = element_blank(),
+        #axis.line.x = element_blank(),
+       axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+ # xlim(range(time_seq20))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+  scale_x_continuous(limits = range(time_seq20), breaks = time_seq20[c(1, 61)], labels = c("20:00", "21:00"), position = "top")+
+    scale_y_continuous(limits = c(70, 120))
+
+
+hr<- grid.arrange(grobs=list(g1,g2,g3,g4,g5),nrow=1,ncol=5)
+```
+
+
+
+```{r warning=FALSE, include=FALSE}
+
+
+day_colors <- c("Day1" = "blue",
+                "Day2" = "red",
+                "Day3" = "green",
+                "Day4" = "yellow",
+                "Day5" = "purple",
+                "Day6"="pink",
+                "Day7"="steelblue")
+
+par(mfrow = c(1, 3))
+g1<-ggplot(p2767, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = Speed,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "Speed") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+          axis.line.x = element_blank(),
+        axis.ticks.x = element_blank())+
+  xlim(range(time_seq6))+
+  ylim(c(0,85))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)
+
+g2<-ggplot(p271112, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = Speed,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  xlim(range(time_seq11))+
+  ylim(c(0,85))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)
+
+g3<-ggplot(p271617, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = Speed,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  xlim(range(time_seq16))+
+  ylim(c(0,85))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)
+
+g4<-ggplot(p271819, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = Speed,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+           axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+       axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  xlim(range(time_seq18))+
+  ylim(c(0,85))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)
+
+g5<-ggplot(p272021, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = Speed,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+       axis.ticks.x = element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  xlim(range(time_seq20))+
+  ylim(c(0,85))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)
+speed<- grid.arrange(grobs=list(g1,g2,g3,g4,g5),nrow=1,ncol=5)
+```
+
+
+
+
+```{r include=FALSE, warning=FALSE}
+
+
+day_colors <- c("Day1" = "blue",
+                "Day2" = "red",
+                "Day3" = "green",
+                "Day4" = "yellow",
+                "Day5" = "purple",
+                "Day6"="pink",
+                "Day7"="steelblue")
+
+par(mfrow = c(1, 3))
+g1<-ggplot(p2767, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = JF,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "Jam Factor") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+          axis.line.x = element_blank(),
+        axis.ticks.x = element_blank())+
+  xlim(range(time_seq6))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+    scale_y_continuous(limits = c(0, 10))
+
+g2<-ggplot(p271112, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = JF,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  xlim(range(time_seq11))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+    scale_y_continuous(limits = c(0, 10))
+
+g3<-ggplot(p271617, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = JF,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  xlim(range(time_seq16))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+    scale_y_continuous(limits = c(0, 10))
+
+g4<-ggplot(p271819, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = JF,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank(),
+       axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  xlim(range(time_seq18))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+    scale_y_continuous(limits = c(0, 10))
+
+
+g5<-ggplot(p272021, aes(x = as.POSIXct(format(Time, format = "%H:%M:%S"), format = "%H:%M:%S"), y = JF,color=Day.)) +
+  geom_line() +
+  labs(x = "", y = "") +
+  theme_classic()+
+    theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  xlim(range(time_seq20))+
+  scale_color_manual(values = day_colors)+
+  guides(color = FALSE)+
+    scale_y_continuous(limits = c(0, 10))
+jam<-grid.arrange(grobs=list(g1,g2,g3,g4,g5),nrow=1,ncol=5)
+```
+
+
+
+
+```{r include=FALSE, message=FALSE}
+library(cowplot)
+library(grid)
+Days <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday","Saturday","Sunday")
+sales <- c(50, 75, 100, 125, 150,175,200)
+df <- data.frame(Days, sales)
+my_colors <- c("blue", "red", "green", "yellow", "purple","pink","steelblue")
+names(my_colors) <- Days
+p2 <- ggplot(data = df, aes(x = Days, y = sales, color = Days)) +
+  geom_line() +
+  scale_color_manual(values = my_colors) +
+  labs(title = "Weekly Sales", x = "Day of the Week", y = "Sales") +
+  theme_minimal() +
+  theme(legend.position = "top")
+legend2 <- get_legend(p2 + guides(color=guide_legend(nrow=1))+
+                   theme(legend.position ="top",
+                          legend.justification = "center"))
+#grid.arrange(legend_grob2, grid1, grid2, grid3, grid4, nrow = 5, ncol = 1
+```
+
+```{r echo=FALSE, fig.height=14, fig.width=14, message=FALSE}
+grid.arrange(legend2,hr,jam,speed,weather,nrow=5,ncol=1, heights=c(1,3,3,3,3))
+
+```
+
+\newpage
+
+
+The plots show the relationship between time and weather across different days.
+Each point on the plot represents the weather condition at a specific time.
+The x-axis represents the time of the day while the y-axis represents the weather condition.
+There are different colors used for different days to distinguish them from one another.
+The plots show that the weather conditions are not constant throughout the day, and there are fluctuations in the weather pattern over time.
+The plots reveal that the weather conditions are more stable during the day and become more unpredictable in the evening and night.
+There is a consistent pattern of clear weather conditions in the morning and early afternoon, which tends to transition into cloudy and rainy conditions in the later part of the day.
+The plots provide insight into the range of weather conditions experienced during the observed period and how they change over time.
+The plots show that on some days, the weather conditions follow a particular pattern, while on other days, they are more random and unpredictable.
+Overall, the plots provide a comprehensive visualization of the weather patterns over time and help to identify trends and changes in the weather conditions.
+
+
+## Observations
+
+The above plot is a signal figure for participant P27, that shows the participant-27's signals of heart rate, jam factor, vehicle speed, and weather throughout the day for all seven days of the observational period.
+
+### HeartRate
+
+The maximum value of HeartRate registered is 117 registered on Day1 and minimum value is 66 on day 6.
+On Day 5, Heart rate was more fluctuating from morning 6:30 -7:00 am, 4:00 pm - 5:00 pm and 8:00pm to 9:00 pm.
+From 4:00pm - 5:00pm, we can see more fluctuations in Heart rate which means the Heart rate for Participant 27 on days Day1, day2, Day3, day5.From 11:00 am - 12:00 pm, Heart rate was more fluctuating only on Days 3 and 5.
+
+### Jam factor
+
+Jam factor indicates traffic conditions in each observational moment.
+Highest Jam Factor recorded is 9.34248 and was recorded on Day1 i.e. Monday. which indicates that there wass very slow flow of traffic on Monday.
+and Lowest Jam factor was 0.00 recorded on day2 - tuesday, which means there was free flow of traffic on Tuesday.From the plots, it is evident that there was heavy traffic recorded on weekdays than weekends.
+On daily basis, the traffic level was fluctuating more morning 6-7 am and evening 4:00pm - 5:00 pm
+
+### Weather
+
+From graph, it is evident that there are 3 types of weathers Cloud, rain, clear. Rains recorded on Monday, Wednesday and Friday
+weather was a bit cloudy on Saturday and Friday.
+The sky was mostly clear on Day3 - Wednesday.The weather was more fluctuating on Friday, as it was clear sky in the morning, rained at 11:00am and 4:00pm and then it was cloudy at night.
+
+### Speed
+The highest speed recorded was 82 on day3 - Wednesday afternoon.Comparing weekends, the speed was more fluctuating on Saturday than Sunday.On Friday, the speed was more fluctuating comparating to other days.
+As there was more fluctuations in traffic from 4:00pm - 5:00 pm, the speed was also more fluctuating from 4:00 - 5 pm 
